@@ -33,4 +33,3 @@ Lab aims to create the following:
 ## Steps
 
 ### Create VPC
-
