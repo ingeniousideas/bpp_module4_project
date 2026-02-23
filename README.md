@@ -24,10 +24,18 @@ Also big emphasis on five rules of networking:
 
 Try build MVP with **AWS Lab Project**. Replicate the work done here in **AWS Academy Learner Lab**. Where insufficient knowledge or understanding, dip into **AWS Academy Cloud Developing**.
 
-### Document Everything Here
+### Document Workings and References Here
 
 Document everything here. To use as primer/draft for video presentation.
 
+- Presentation Components
+  - **Cloud_DORA.md**, documentation for presentation.
+    - Mermaid diagrams.
+    - draw.io diagrams.
+    - Discussion notes and bullet lists.
+  - Video on YouTube.
+    - 20 minutes.
+    - Link added to submission.
 - AWS SDK CLI Commands used to build and create resources.
 - Reasoning behind choices, as indicated in **AWS Lab Project**.
 
