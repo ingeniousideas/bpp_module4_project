@@ -69,7 +69,8 @@ Endpoints can help reduce NAT gateway charges and improve security by accessing 
 
 ## [IAM](#contents)
 
-N.B. Seems creation of User, Groups and Roles is not permitted with current access to 
+N.B. Seems creation of User, Groups and Roles is not permitted with current access to the lab.
+
 What IAM has been implemented and how.
 
 Use of the following:
