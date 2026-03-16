@@ -1,8 +1,18 @@
 # Readme for Module 4 Project Cloud
 
-## Objective
+## [Contents](#contents)
+
+- [Objective](#objective)
+  - [Architecture](#architecture)
+  - [Networking](#networking)
+- [MVP](#mvp)
+  - [MVP Components](#mvp---components)
+
+## [Objective](#contents)
 
 Build at least a three tier web application on AWS. Developed in **AWS Academy Learner Lab** environment.
+
+### [Architecture](#contents)
 
 - Web served front-end.
 - Backend logic processing layer.
@@ -12,7 +22,9 @@ Build at least a three tier web application on AWS. Developed in **AWS Academy L
 
 Need to demonstrate wrap-around features such as Security (BIG DEAL), Monitoring and Cost.
 
-Also big emphasis on five rules of networking:
+### [Networking](#contents)
+
+Big emphasis on five rules of networking:
 
 1. Redundancy.
 2. Scaleability.
@@ -20,26 +32,38 @@ Also big emphasis on five rules of networking:
 4. Manageability.
 5. Functionality.
 
-## MVP
+## [MVP](#contents)
 
 Try build MVP with **AWS Lab Project**. Replicate the work done here in **AWS Academy Learner Lab**. Where insufficient knowledge or understanding, dip into **AWS Academy Cloud Developing**.
 
-### Document Workings and References Here
+### [MVP - Components](#contents)
+
+High level components for MVP for TradeStream.
+
+## [Documentation and References](#contents)
 
 Document everything here. To use as primer/draft for video presentation.
 
-- Presentation Components
-  - **Cloud_DORA.md**, documentation for presentation.
-    - Mermaid diagrams.
-    - draw.io diagrams.
-    - Discussion notes and bullet lists.
-  - Video on YouTube.
-    - 20 minutes.
-    - Link added to submission.
+### [Presentation Artefacts](#contents)
+
+- [**AWS Learner Lab Project**](/AWS_Learner_Lab_Project.md) key document.
+  - Notes of AWS development.
+  - Mermaid diagrams.
+  - draw.io diagrams.
+  - Discussion notes and bullet lists.
+
+### [Video on YouTube](#contents)
+
+- 20 minutes.
+  - Link added to submission.
 - AWS SDK CLI Commands used to build and create resources.
 - Reasoning behind choices, as indicated in **AWS Lab Project**.
 
-### Use CloudFormation
+## [North Star](#contents)
+
+Additional components and configuration etc that might be included for a North Star implementation.
+
+### [Use CloudFormation](#contents)
 
 Develop a CloudFormation Template in JSON
 
@@ -59,7 +83,7 @@ Resources limited by quota.
 
 Templates create documentation of infrastructure.
 
-#### Example CloudFormation template structure
+#### [Example CloudFormation template structure](#contents)
 
 From <https://awsacademy.instructure.com/courses/157153/modules/items/15336803>
 
@@ -78,7 +102,7 @@ From <https://awsacademy.instructure.com/courses/157153/modules/items/15336803>
 
 ```
 
-#### Detailed Section Examples
+#### [Detailed Section Examples](#contents)
 
 Example description:
 
