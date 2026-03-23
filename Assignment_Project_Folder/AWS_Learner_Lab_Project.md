@@ -3,6 +3,7 @@
 ## [Contents](#contents)
 
 - [Purpose](#purpose)
+- [Setup](#setup)
 - [Special Notes](#special-notes)
 - [Network](#network)
   - [VPC](#vpc)
@@ -11,7 +12,25 @@
 
 ## [Purpose](#contents)
 
-Documentation in relation to development of Module Project in AWS.
+The **Learner Lab** is where the assignment project will be built. Need to document the architecture and build. Documentation in relation to development of Module Project in AWS.
+
+## [Setup](#contents)
+
+Both the Lab and Learner Lab environments can be launched at the same time. Have enabled "**multi-session support**". Find at top right of cloud console, drop-down next to **Account-ID**. Learner Lab instance has preferences set to **Dark Theme** to distinguish from other instances.
+
+## [Target Infrastructure](#contents)
+
+### My Iteratively Developed Design
+
+![Iterative HLD](/Assignment_Project_Folder/AWS_HLD_Workings.drawio.svg)
+
+### Reference Designs from Lectures etc
+
+![Subnets & Routes](/AWS_ArchDiagrams/AWS_SubNetsRouting.png)
+
+![Basic Lab App](/AWS_ArchDiagrams/AWS_BasicLabApp.png)
+
+![Three Tier App](/AWS_ArchDiagrams/AWS_3TierNetworkinge.png)
 
 ## [Special Notes](#contents)
 
