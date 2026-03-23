@@ -18,6 +18,15 @@ The **Learner Lab** is where the assignment project will be built. Need to docum
 
 Both the Lab and Learner Lab environments can be launched at the same time. Have enabled "**multi-session support**". Find at top right of cloud console, drop-down next to **Account-ID**. Learner Lab instance has preferences set to **Dark Theme** to distinguish from other instances.
 
+### Clean-up
+
+To clean-up the workspace, deleting all resources, do the following:
+
+Can just reset the entire environment.
+
+- EC2 > Terminate (delete) instance. Cannot skip OS Shutdown.
+- VPC TBC.
+
 ## [Target Infrastructure](#contents)
 
 ### My Iteratively Developed Design

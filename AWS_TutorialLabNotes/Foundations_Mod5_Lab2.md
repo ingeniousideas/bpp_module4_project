@@ -41,70 +41,12 @@ Both the Lab and Learner Lab environments can be launched at the same time. Have
 
 Virtual defined network. Benefits using scale of AWS. VPC can span multiple Availability Zones. Additional subnets are added to this.
 
-In the top right of the screen, verify that N. Virginia (us-east-1) is the region. 
+#### References
 
-Choose the VPC dashboard link which is towards the top left of the console.
+- [What is a VPC](https://docs.aws.amazon.com/vpc/latest/userguide/what-is-amazon-vpc.html)
 
-Next, choose Create VPC. 
+### [Create subnets](#contents)
 
-Note: If you do not see a button with that name, choose the Launch VPC Wizard button instead.
+### [Configure a security group](#contents)
 
-  
-
-Configure the VPC details in the VPC settings panel on the left:
-
-Choose VPC and more.
-
-Under Name tag auto-generation, keep Auto-generate selected, however change the value from project to lab.
-
-Keep the IPv4 CIDR block set to 10.0.0.0/16
-
-For Number of Availability Zones, choose 1.
-
-For Number of public subnets, keep the 1 setting.
-
-For Number of private subnets, keep the 1 setting.
-
-Expand the Customize subnets CIDR blocks section
-
-Change Public subnet CIDR block in us-east-1a to 10.0.0.0/24
-
-Change Private subnet CIDR block in us-east-1a to 10.0.1.0/24
-
-Set NAT gateways to In 1 AZ.
-
-Set VPC endpoints to None.
-
-Keep both DNS hostnames and DNS resolution enabled.
-
- 
-
-In the Preview panel on the right, confirm the settings you have configured.
-
-VPC: lab-vpc
-
-Subnets:
-
-us-east-1a
-
-Public subnet name: lab-subnet-public1-us-east-1a
-
-Private subnet name: lab-subnet-private1-us-east-1a
-
-Route tables
-
-lab-rtb-public
-
-lab-rtb-private1-us-east-1a
-
-Network connections
-
-lab-igw
-
-lab-nat-public1-us-east-1a
-
-[Create subnets](#contents)
-
-[Configure a security group](#contents)
-
-[Launch EC2 instance in to VPC](#contents)
+### [Launch EC2 instance in to VPC](#contents)
