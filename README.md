@@ -94,10 +94,10 @@ From <https://awsacademy.instructure.com/courses/157153/modules/items/15336803>
   "Metadata" : {template metadata},
   "Parameters" : {set of parameters},
   "Mappings" : {set of ... Similar to look-up able},
-  "Conditions" : {set of ... Whether resources created, or resrouces properties applied during creation or update. Could depend on whether dev or prod},
+  "Conditions" : {set of ... Whether resources created, or resources properties applied during creation or update. Could depend on whether dev or prod},
   "Transform" : {set of ...for serverless apps, Lambda, which AWS SAM to use.},
   "Resources" : {set of ...Stack resources and properties. EC2 instance, bucket},
-  "Outputs" : {set of ...values returned whenever view stacks properties. Can sue depndes on to order creation.}
+  "Outputs" : {set of ...values returned whenever view stacks properties. Can sue depends on to order creation.}
 }
 
 ```
