@@ -113,7 +113,7 @@ These instructions are for Mac/Linux users only.
 1. Return to the terminal window and run this command (replace **<public-ip>** with the actual public IP address you copied):
 
     ```bash
-    ssh -i <filename>.pem ec2-user@<public-ip>
+    ssh -i labsuser.pem ec2-user@100.54.4.80
     ```
 
 1. Type ***yes*** when prompted to allow a first connection to this remote SSH server.
@@ -132,7 +132,7 @@ These instructions are for Mac/Linux users only.
 1. Clone your repo (N.B. repo is public):
 
     ```bash
-    git clone https://github.com/ingeniousideas/bpp_module2_project.git doraview
+    git clone https://github.com/ingeniousideas/dora.git
     ```
 
 1. Update Directory Trust:
@@ -146,11 +146,23 @@ These instructions are for Mac/Linux users only.
     ```bash
     sudo chown -R doraview:doraview /opt/doraview
     ```
-
-1. Install requirements:
+1. Install UV Package Manager:
 
     ```bash
-    pip3 install -r requirements.txt
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
+
+1. Sync .venv with uv:
+
+    ```bash
+    uv sync
+    ```
+
+1. Execute the following code:
+
+    ```bash
+    uv r
+    ```
 
 #### [Connecting to MySQL Instance](#contents)
 
