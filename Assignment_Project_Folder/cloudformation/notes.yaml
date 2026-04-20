@@ -1,7 +1,0 @@
-Stack ID:
-  arn:aws:cloudformation:us-east-1:500884262059:stack/dora-stack/fcc638e0-3834-11f1-b6a4-0affde17201b
-
-User: arn:aws:sts::500884262059:assumed-role/voclabs/user4802472=Sebastien_Perceau-Wells
-Action: account:GetAccountInformation
-On resource(s): arn:aws:account::500884262059:account
-Context: no identity-based policy allows the action

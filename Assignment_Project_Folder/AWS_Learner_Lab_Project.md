@@ -17,9 +17,9 @@
 
 ## [Next](#contents)
 
-- [ ] Document precisely what actions to replicate.
 - [ ] Deploy my DORA dash app to the infra.
-- [ ] Replace Aurora for RDS MySQL.
+- [ ] Document step-by-step DORA dash app.
+
 
 ## [Purpose](#contents)
 
@@ -113,7 +113,7 @@ These instructions are for Mac/Linux users only.
 1. Return to the terminal window and run this command (replace **<public-ip>** with the actual public IP address you copied):
 
     ```bash
-    ssh -i labsuser.pem ec2-user@100.54.4.80
+    ssh -i labsuser.pem ec2-user@3.238.224.2
     ```
 
 1. Type ***yes*** when prompted to allow a first connection to this remote SSH server.
@@ -123,46 +123,80 @@ These instructions are for Mac/Linux users only.
 #### [Deploy Dash App](#contents)
 
 1. SSH into your EC2 instance as per instructions above.
-1. Delete the placeholder folder:
+1. Nav to top-level:
 
     ```bash
-    sudo rm -rf /opt/doraview/*
+    cd opt/
     ```
 
-1. Clone your repo (N.B. repo is public):
+1. Remove stack app.py:
 
     ```bash
-    git clone https://github.com/ingeniousideas/dora.git
+    sudo rm -rf doraview/*
+    ```
+
+1. Clone your repo to source folder(N.B. repo is public):
+
+    ```bash
+    sudo git clone https://github.com/ingeniousideas/dora.git doraview
+    ```
+
+1. Install uv as globally available:
+
+    ```bash
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    sudo mv ~/.local/bin/uv /usr/local/bin/  # Make it available to all users
+    ```
+
+1. Ensure correct ownership of folder:
+
+    ```bash
+    sudo chown -R doraview:doraview /opt/doraview/
     ```
 
 1. Update Directory Trust:
 
    ```bash
-   git config --global --add safe.directory /opt/doraview
+   sudo git config --global --add safe.directory /opt/doraview
    ```
+
+1. Change dir:
+
+    ```bash
+    cd doraview/
+    ```
+
+1. Install system-level development packages using *dnf* before running uv sync.
+
+   ```bash
+   sudo dnf install -y systemd-devel gcc python3-devel pkgconfig
+   ```
+
+1. Sync .venv with uv:
+
+    ```bash
+    sudo uv sync
+    ```
+
+1. Update from git:
+
+    ```bash
+    sudo git pull
+    ```
+
+1. Launch App:
+
+    ```bash
+    sudo uv run app.py
+    ```
 
 1. Fix Permissions:
 
     ```bash
     sudo chown -R doraview:doraview /opt/doraview
     ```
-1. Install UV Package Manager:
 
-    ```bash
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    ```
 
-1. Sync .venv with uv:
-
-    ```bash
-    uv sync
-    ```
-
-1. Execute the following code:
-
-    ```bash
-    uv r
-    ```
 
 #### [Connecting to MySQL Instance](#contents)
 
@@ -273,3 +307,8 @@ Log what I've been doing to keep track of where I am.
 #### Done
 
 - Successfully created working CloudFormation dora_stack.yaml with simple example Dash app.
+
+#### Sat 18 Apr
+
+- [x] Replace Aurora for RDS MySQL.
+- [x] Document precisely what actions to replicate for CloudFormation deployment.
