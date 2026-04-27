@@ -1,0 +1,535 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Infrastructure for a Python Dash application.
+  Includes a VPC with public/private subnets across two AZs,
+  an Aurora Serverless v2 MySQL-compatible RDS cluster,
+  AWS Secrets Manager for database credentials,
+  an EC2 web server to host the Dash app.
+
+# -------------------------------------------------------
+# Parameters — override these at deploy time
+# -------------------------------------------------------
+Parameters:
+
+  EnvironmentName:
+    Type: String
+    Default: dora-view
+    Description: Prefix applied to all resource names.
+
+  VpcCIDR:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: CIDR block for the VPC.
+
+  PublicSubnet1CIDR:
+    Type: String
+    Default: 10.0.1.0/24
+
+  PublicSubnet2CIDR:
+    Type: String
+    Default: 10.0.2.0/24
+
+  PrivateSubnet1CIDR:
+    Type: String
+    Default: 10.0.11.0/24
+
+  PrivateSubnet2CIDR:
+    Type: String
+    Default: 10.0.12.0/24
+
+  DBUsername:
+    Type: String
+    Default: admin
+    NoEcho: true
+    Description: Master username for the RDS MySQL instance.
+
+  DBPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: >
+      Master password for the RDS MySQL instance (min 8 chars).
+      This is stored immediately in Secrets Manager and never written
+      to disk or exposed in CloudFormation outputs.
+
+  DBInstanceClass:
+    Type: String
+    Default: db.t3.micro
+    AllowedValues:
+      - db.t3.micro
+      - db.t3.small
+      - db.t3.medium
+    Description: >
+      Instance class for the RDS MySQL primary (and standby).
+      db.t3.micro is sufficient for development; increase for production.
+
+  WebServerInstanceType:
+    Type: String
+    Default: t3.small
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+    Description: EC2 instance type for the Dash web server.
+
+  WebServerAMI:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    Description: >
+      SSM parameter path for the latest Amazon Linux 2023 AMI.
+      The default keeps your instance automatically on the latest AMI
+      without needing to look up AMI IDs per region.
+
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: >
+      Name of an existing EC2 Key Pair for SSH access to the web server.
+      Create one in the EC2 console under Network & Security > Key Pairs
+      before deploying this stack.
+
+# -------------------------------------------------------
+# Resources
+# -------------------------------------------------------
+Resources:
+
+  # =====================================================
+  # VPC
+  # =====================================================
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Naming
+          Value: !Sub "${EnvironmentName}-vpc"
+
+  # =====================================================
+  # Internet Gateway (needed for public subnets / web server)
+  # =====================================================
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Naming
+          Value: !Sub "${EnvironmentName}-igw"
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # =====================================================
+  # Public Subnets (Web Server sit here)
+  # =====================================================
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet1CIDR
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Naming
+          Value: !Sub "${EnvironmentName}-public-subnet-az1"
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet2CIDR
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Naming
+          Value: !Sub "${EnvironmentName}-public-subnet-az2"
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Naming
+          Value: !Sub "${EnvironmentName}-public-rt"
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  # =====================================================
+  # Private Subnets (RDS sits here)
+  # =====================================================
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet1CIDR
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags:
+        - Key: Naming
+          Value: !Sub "${EnvironmentName}-private-subnet-az1"
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet2CIDR
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags:
+        - Key: Naming
+          Value: !Sub "${EnvironmentName}-private-subnet-az2"
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Naming
+          Value: !Sub "${EnvironmentName}-private-rt"
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable
+
+  # =====================================================
+  # Security Groups
+  # =====================================================
+
+  # Web server — accepts HTTP (80), HTTPS (443) and SSH (22) from anywhere,
+  # plus port 8050 for direct Dash access during development.
+  # Restrict SSH to your own IP CIDR in production.
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for the Dash web server EC2 instance
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP from internet
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS from internet
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH restrict to your IP in production
+        - IpProtocol: tcp
+          FromPort: 8050
+          ToPort: 8050
+          CidrIp: 0.0.0.0/0
+          Description: Dash default dev port (remove once Nginx proxy is configured)
+      Tags:
+        - Key: Naming
+          Value: !Sub "${EnvironmentName}-webserver-sg"
+
+  # RDS — accepts MySQL from the web server only
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RDS MySQL instance
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref WebServerSecurityGroup
+          Description: MySQL from web server
+      Tags:
+        - Key: Naming
+          Value: !Sub "${EnvironmentName}-rds-sg"
+
+  # =====================================================
+  # Secrets Manager — DB credentials
+  # =====================================================
+
+  # Stores username + password as a JSON secret.
+  # The web server retrieves this at runtime via boto3 — no plaintext
+  # credentials ever touch environment variables or config files.
+  DBSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "${EnvironmentName}/mysql/credentials"
+      Description: RDS MySQL master credentials for the Dash application
+      SecretString: !Sub |
+        {
+          "username": "${DBUsername}",
+          "password": "${DBPassword}",
+          "engine": "mysql",
+          "port": 3306,
+          "dbname": "doraviewdb"
+        }
+      Tags:
+        - Key: Naming
+          Value: !Sub "${EnvironmentName}-db-secret"
+
+  # Attaches the secret to the RDS instance so that the
+  # "Retrieve secret value" button works in the Secrets Manager console
+  # and enables future automatic rotation.
+  DBSecretAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+      SecretId: !Ref DBSecret
+      TargetId: !Ref MySQLInstance
+      TargetType: AWS::RDS::DBInstance
+
+  # =====================================================
+  # EC2 Web Server
+  # =====================================================
+  WebServerInstance:
+    Type: AWS::EC2::Instance
+    DependsOn:
+      - MySQLInstance
+      - DBSecret
+    Properties:
+      IamInstanceProfile: LabInstanceProfile
+      InstanceType: !Ref WebServerInstanceType
+      ImageId: !Ref WebServerAMI
+      KeyName: !Ref KeyPairName
+      SubnetId: !Ref PublicSubnet1
+      SecurityGroupIds:
+        - !Ref WebServerSecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20        # GB — enough for OS + Python venv + app code
+            VolumeType: gp3
+            DeleteOnTermination: true
+      # UserData runs once on first boot and:
+      #   1. Installs Python 3, pip, git, nginx
+      #   2. Creates a dedicated 'doraview' OS user
+      #   3. Writes db_config.py — fetches creds from Secrets Manager using
+      #      the lab's ambient voclabs permissions (no custom IAM role needed)
+      #   4. Installs Dash, gunicorn, boto3, and PyMySQL
+      #   5. Creates a systemd service so Dash auto-restarts on reboot or crash
+      #   6. Configures Nginx as a reverse proxy on port 80
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euxo pipefail
+
+          # ── System packages ───────────────────────────────────────────
+          dnf update -y
+          dnf install -y python3 python3-pip git nginx
+
+          # ── App user and directory ────────────────────────────────────
+          useradd -m -s /bin/bash doraview
+          mkdir -p /opt/doraview
+          chown doraview:doraview /opt/doraview
+
+          # ── Python virtual environment ────────────────────────
+          python3 -m venv /opt/doraview/venv
+
+          # ── Clone app from GitHub ─────────────────────────────
+          git clone https://github.com/ingeniousideas/dora.git /opt/doraview/app_src
+          cp -r /opt/doraview/app_src/. /opt/doraview/
+          chown -R doraview:doraview /opt/doraview
+          
+          # ── Install dependencies (use venv binaries directly) ─────────
+          /opt/doraview/venv/bin/pip install gunicorn boto3 PyMySQL
+          if [ -f /opt/doraview/requirements.txt ]; then
+              /opt/doraview/venv/bin/pip install -r /opt/doraview/requirements.txt
+          fi
+
+          # ── Secret helper: db_config.py ───────────────────────────────
+          # Import get_db_credentials() in your Dash app to retrieve
+          # the host, port, username, password, and dbname at runtime.
+          # boto3 automatically uses the lab environment's ambient credentials.
+          cat > /opt/doraview/db_config.py << 'PYEOF'
+          import json
+          import boto3
+
+          SECRET_NAME = "${EnvironmentName}/mysql/credentials"
+          DB_HOST     = "${MySQLInstance.Endpoint.Address}"
+          REGION      = "${AWS::Region}"
+
+          def get_db_credentials():
+              """
+              Retrieve DB credentials from Secrets Manager.
+              Returns a dict: username, password, engine, port, dbname, host.
+              """
+              client = boto3.client("secretsmanager", region_name=REGION)
+              response = client.get_secret_value(SecretId=SECRET_NAME)
+              secret = json.loads(response["SecretString"])
+              secret["host"] = DB_HOST
+              return secret
+          PYEOF
+
+          chown doraview:doraview /opt/doraview/db_config.py
+          chown doraview:doraview /opt/doraview/app.py
+
+          # ── systemd service ───────────────────────────────────────────
+          cat > /etc/systemd/system/doraview.service << 'EOF'
+          [Unit]
+          Description=Gunicorn instance for Python Dash application
+          After=network.target
+          
+          [Service]
+          User=doraview
+          WorkingDirectory=/opt/doraview
+          ExecStart=/opt/doraview/venv/bin/gunicorn \
+              --workers 2 \
+              --bind 0.0.0.0:8050 \
+              --timeout 120 \
+              app:server
+          Restart=always
+          RestartSec=5
+          StandardOutput=journal
+          StandardError=journal
+          
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+          systemctl daemon-reload
+          systemctl enable doraview
+          systemctl start doraview
+
+          # ── Nginx reverse proxy ───────────────────────────────────────
+          # Proxies port 80 → gunicorn on 8050.
+          # Add SSL via certbot/ACM for production HTTPS.
+          cat > /etc/nginx/conf.d/doraview.conf << 'EOF'
+          server {
+              listen 80;
+              server_name _;
+
+              location / {
+                  proxy_pass         http://127.0.0.1:8050;
+                  proxy_set_header   Host $host;
+                  proxy_set_header   X-Real-IP $remote_addr;
+                  proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_read_timeout 120;
+              }
+          }
+          EOF
+
+          systemctl enable nginx
+          systemctl start nginx
+
+      Tags:
+        - Key: Naming
+          Value: !Sub "${EnvironmentName}-web-server"
+
+  # =====================================================
+  # RDS MySQL
+  # =====================================================
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for MySQL
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      Tags:
+        - Key: Naming
+          Value: !Sub "${EnvironmentName}-db-subnet-group"
+
+  # A single AWS::RDS::DBInstance with MultiAZ: true is all that is needed
+  # for a primary + standby deployment. AWS automatically provisions the
+  # standby in the second AZ from the subnet group, handles synchronous
+  # replication, and performs automatic failover — no second resource needed.
+  MySQLInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete  # For production this would be "Snapshot". Changing to "Delete" speeds stack deletion.
+    Properties:
+      DBInstanceIdentifier: !Sub "${EnvironmentName}-mysql"
+      DBInstanceClass: !Ref DBInstanceClass
+      Engine: mysql
+      EngineVersion: "8.0"
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBName: doraviewdb
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      MultiAZ: false           # Provisions a synchronous standby in the second AZ. Set to false to speed deployment time. Prod would have "true".
+      StorageType: gp3
+      AllocatedStorage: "20"  # GB — minimum for gp3; increase as data grows
+      StorageEncrypted: true
+      PubliclyAccessible: false
+      BackupRetentionPeriod: 0        # Days of automated backups to retain. Reduced to 0 from 7 to speed-up provisioning. No snapshot taken.
+      DeletionProtection: false       # Set to true to prevent accidental deletion
+      Tags:
+        - Key: Naming
+          Value: !Sub "${EnvironmentName}-mysql"
+# -------------------------------------------------------
+# Outputs
+# -------------------------------------------------------
+Outputs:
+
+  VPCId:
+    Description: VPC ID
+    Value: !Ref VPC
+    Export:
+      Name: !Sub "${EnvironmentName}-VpcId"
+
+  PrivateSubnet1Id:
+    Description: Private Subnet AZ1
+    Value: !Ref PrivateSubnet1
+    Export:
+      Name: !Sub "${EnvironmentName}-PrivateSubnet1"
+
+  PrivateSubnet2Id:
+    Description: Private Subnet AZ2
+    Value: !Ref PrivateSubnet2
+    Export:
+      Name: !Sub "${EnvironmentName}-PrivateSubnet2"
+
+  DBEndpoint:
+    Description: RDS MySQL primary endpoint (use this in your Dash app config)
+    Value: !GetAtt MySQLInstance.Endpoint.Address
+    Export:
+      Name: !Sub "${EnvironmentName}-DBEndpoint"
+
+  DBPort:
+    Description: RDS MySQL port
+    Value: !GetAtt MySQLInstance.Endpoint.Port
+
+  DBSecretArn:
+    Description: ARN of the Secrets Manager secret holding DB credentials
+    Value: !Ref DBSecret
+    Export:
+      Name: !Sub "${EnvironmentName}-DBSecretArn"
+
+  WebServerPublicIP:
+    Description: Public IP of the Dash web server
+    Value: !GetAtt WebServerInstance.PublicIp
+
+  WebServerPublicDNS:
+    Description: Public DNS of the Dash web server — open this in your browser
+    Value: !GetAtt WebServerInstance.PublicDnsName
+
+  WebServerSSHCommand:
+    Description: SSH command to connect to the web server
+    Value: !Sub "ssh -i ${KeyPairName}.pem ec2-user@${WebServerInstance.PublicDnsName}"
