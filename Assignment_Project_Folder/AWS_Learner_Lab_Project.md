@@ -120,6 +120,48 @@ These instructions are for Mac/Linux users only.
 
     - Because you are using a key pair for authentication, you will not be prompted for a password.
 
+#### [Deploy App Basic](#connect-to-ec2-instance)
+
+Minimal step by step changes.
+
+Connect to ec2 instance as per [above](#connect-to-ec2-instance).
+
+- [x] Add single line to existing app.py.
+- [x] Figure how to have this cascade to nginx and browser.
+
+    ```bash
+    # Reload the systemd configuration
+    sudo systemctl daemon-reload
+    
+    # Restart the application
+    sudo systemctl restart doraview
+    
+    # Restart Nginx (just to be safe, though usually not required if the port stayed the same)
+    sudo systemctl restart nginx
+    ```
+
+Can check failure in the ec2 terminal with this:
+
+```bash
+sudo cat /var/log/cloud-init-output.log
+```
+
+- [ ] Document this.
+
+- [ ] Download doraview: pull repo to **/usr/local/src**.
+
+    ```bash
+    cd /usr/local/src
+    sudo git clone https://github.com/ingeniousideas/dora.git /usr/local/src/
+    ```
+
+- [ ] Copy requirements.txt to /opt/doraview and install.
+  - [ ] Refresh app to see if it still works.
+
+    ```bash
+    pip3 --disable-pip-version-check --no-cache-dir install -r /usr/local/src/requirements.txt
+    ```
+
 #### [Deploy Dash App](#contents)
 
 1. SSH into your EC2 instance as per instructions above.
@@ -196,6 +238,11 @@ These instructions are for Mac/Linux users only.
     sudo chown -R doraview:doraview /opt/doraview
     ```
 
+1. Restart doraview service:
+
+    ```bash
+    sudo systemctl restart doraview
+    ```
 
 
 #### [Connecting to MySQL Instance](#contents)
