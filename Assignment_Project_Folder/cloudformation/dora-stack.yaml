@@ -348,8 +348,19 @@ Resources:
           mkdir -p /opt/doraview
           chown doraview:doraview /opt/doraview
 
-          # ── Python dependencies ───────────────────────────────────────
-          pip3 install dash flask gunicorn boto3 PyMySQL
+          # ── Python virtual environment ────────────────────────
+          python3 -m venv /opt/doraview/venv
+
+          # ── Clone app from GitHub ─────────────────────────────
+          git clone https://github.com/ingeniousideas/dora.git /opt/doraview/app_src
+          cp -r /opt/doraview/app_src/. /opt/doraview/
+          chown -R doraview:doraview /opt/doraview
+          
+          # ── Install dependencies (use venv binaries directly) ─────────
+          /opt/doraview/venv/bin/pip install gunicorn boto3 PyMySQL
+          if [ -f /opt/doraview/requirements.txt ]; then
+              /opt/doraview/venv/bin/pip install -r /opt/doraview/requirements.txt
+          fi
 
           # ── Secret helper: db_config.py ───────────────────────────────
           # Import get_db_credentials() in your Dash app to retrieve
@@ -374,28 +385,8 @@ Resources:
               secret["host"] = DB_HOST
               return secret
           PYEOF
+
           chown doraview:doraview /opt/doraview/db_config.py
-
-          # ── Placeholder Dash app ──────────────────────────────────────
-          # Replace /opt/doraview/app.py with your real application code.
-          cat > /opt/doraview/app.py << 'PYEOF'
-          import dash
-          from dash import html
-          from db_config import get_db_credentials
-
-          creds = get_db_credentials()
-
-          app = dash.Dash(__name__)
-          app.layout = html.Div([
-              html.H1("Dash App is running!"),
-              html.P(f"Connected to: {creds['host']} / {creds['dbname']}")
-          ])
-
-          server = app.server   # expose Flask server for gunicorn
-
-          if __name__ == "__main__":
-              app.run(host="0.0.0.0", port=8050, debug=False)
-          PYEOF
           chown doraview:doraview /opt/doraview/app.py
 
           # ── systemd service ───────────────────────────────────────────
@@ -403,11 +394,11 @@ Resources:
           [Unit]
           Description=Gunicorn instance for Python Dash application
           After=network.target
-
+          
           [Service]
           User=doraview
           WorkingDirectory=/opt/doraview
-          ExecStart=/usr/local/bin/gunicorn \
+          ExecStart=/opt/doraview/venv/bin/gunicorn \
               --workers 2 \
               --bind 0.0.0.0:8050 \
               --timeout 120 \
@@ -416,7 +407,7 @@ Resources:
           RestartSec=5
           StandardOutput=journal
           StandardError=journal
-
+          
           [Install]
           WantedBy=multi-user.target
           EOF
